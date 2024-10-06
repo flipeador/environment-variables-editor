@@ -4,6 +4,9 @@
 
 <p align="center">
   <img alt="Preview" src="assets/preview.webp"/> <br/> <br/>
+  <a alt="Direct download" href="https://github.com/flipeador/environment-variables-editor/releases/download/v1.0.1/envvars.exe">
+    <img src="https://img.shields.io/badge/Releases-Direct download (v1.0.1)-orange.svg?style=for-the-badge"/>
+  </a>
 </p>
 
 Environment variables specify files, directories, application-specific options,
