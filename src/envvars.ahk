@@ -1,10 +1,7 @@
-;@Ahk2Exe-SetProductName Windows environment variables editor
-;@Ahk2Exe-SetFileVersion 1.0.1.0
-
-;@Ahk2Exe-Set Author, https://github.com/flipeador
-;@Ahk2Exe-Set Source, https://gist.github.com/flipeador/df43c2f742585e4599669ced56ea3dda
-
-;@Ahk2Exe-UpdateManifest 0
+;@Ahk2Exe-SetFileVersion 1.0.2.0
+;@Ahk2Exe-SetProductName Environment Variables Editor
+;@Ahk2Exe-SetDescription Windows environment variables editor
+;@Ahk2Exe-SetCopyright https://github.com/flipeador/environment-variables-editor
 
 #Requires AutoHotkey v2.0.18
 #SingleInstance Off
@@ -47,7 +44,8 @@ TV := UI.AddTreeView(
         700, 25, '131313', 'EDEDD1', IL
     )
 )
-SetWindowTheme(TV.Hwnd)
+SetMicaEffect(UI.Hwnd)
+SetExplorerTheme(TV.Hwnd)
 TV.OnEvent('ContextMenu', TV_OnContextMenu)
 UI.OnEvent('Close', (*) => ExitApp())
 
@@ -560,11 +558,6 @@ SendMessage(hWnd, Msg, wParam:=0, lParam:=0, Timeout:=1)
     return r ? result : ''
 }
 
-SetWindowTheme(hWnd)
-{
-    DllCall('uxtheme\SetWindowTheme', 'Ptr', hWnd, 'Str', 'Explorer', 'Ptr', 0)
-}
-
 ShowInfo(ui, message)
 {
     ui.Opt('+OwnDialogs')
@@ -634,4 +627,27 @@ ReadEnvVar(env, name, &expand)
             return expand || A_LoopRegType == 'REG_SZ' ? RegRead() : ''
         }
     }
+}
+
+SetExplorerTheme(hWnd)
+{
+    DllCall('uxtheme\SetWindowTheme', 'Ptr', hWnd, 'Str', 'Explorer', 'Ptr', 0)
+}
+
+/**
+ * Enable the Mica effect on the non-client area of a window.
+ */
+SetMicaEffect(hWnd)
+{
+    if (VerCompare(A_OSVersion, '10.0.22621') < 0)
+        return ; not supported
+
+    ; Allows the window frame to be drawn in dark mode colors.
+    ; All windows default to light mode regardless of the system setting.
+    ; DWMWA_USE_IMMERSIVE_DARK_MODE (W11 B22000) DWM_SYSTEMBACKDROP_TYPE BOOL
+    DllCall('dwmapi\DwmSetWindowAttribute', 'Ptr', hWnd, 'Int', 20, 'IntP', 1, 'Int', 4)
+
+    ; Set the system-drawn backdrop material of the window.
+    ; DWMWA_SYSTEMBACKDROP_TYPE (W11 B22621) DWM_SYSTEMBACKDROP_TYPE DWMSBT_MAINWINDOW
+    DllCall('dwmapi\DwmSetWindowAttribute', 'Ptr', hWnd, 'Int', 38, 'IntP', 3, 'Int', 4)
 }
