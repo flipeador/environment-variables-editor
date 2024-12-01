@@ -1,4 +1,4 @@
-;@Ahk2Exe-SetFileVersion 1.0.2.0
+;@Ahk2Exe-SetFileVersion 1.0.3.0
 ;@Ahk2Exe-SetProductName Environment Variables Editor
 ;@Ahk2Exe-SetDescription Windows environment variables editor
 ;@Ahk2Exe-SetCopyright https://github.com/flipeador/environment-variables-editor
@@ -16,7 +16,7 @@ USER_KEY := 'HKCU\Environment'
 SYSTEM_KEY := 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
 
 CORE_USER_ENVVARS := [
-    'AppData', 'ComputerName', 'HOMEDRIVE', 'HOMEPATH',
+    'AppData', 'ComputerName', 'HomeDrive', 'HomePath',
     'LocalAppData' , 'UserProfile', 'UserDomain', 'UserName'
 ]
 
@@ -52,7 +52,7 @@ UI.OnEvent('Close', (*) => ExitApp())
 UI.Show()
 LoadEnvVars()
 
-#HotIf WinActive(ui)
+#HotIf WinActive(UI)
 F5:: Reload()
 XButton1:: TV_MoveEnvVarValue('Up')
 XButton2:: TV_MoveEnvVarValue('Down')
@@ -66,30 +66,42 @@ ShowEditDialog(&result, title, name:='', value:='', flags:=0, id:=0)
     dlg.SetFont('', 'Consolas')
     dlg.AddText('', 'Name:    ')
     dlg.AddComboBox('vName w500 yp R10 Choose1 Limit5', [name])
-    .OnEvent('Change', UpdateSaveButton)
+    dlg['Name'].OnEvent('Change', UpdateSaveButton)
     dlg.AddText('xm', 'Value:   ')
     dlg.AddComboBox('vValue w500 yp R10', ParseEnvVarValue(value))
-    .OnEvent('Change', OnValueChange)
+    dlg['Value'].OnEvent('Change', OnValueChange)
     dlg['Value'].Text := value
     dlg.AddText('xm', 'Expanded:')
     dlg.AddEdit('vExpanded w500 yp R1 ReadOnly Disabled')
-    dlg.AddButton('vSave xm Default', 'Save').OnEvent('Click', OnClose)
-    dlg.AddButton('vFile yp', 'Select file').OnEvent('Click', OnSelectFile)
-    dlg.AddButton('vDir yp', 'Select directory').OnEvent('Click', OnSelectFile)
-    dlg.AddCheckbox('vExpand yp', 'REG_EXPAND_SZ').OnEvent('Click', OnExpandCheck)
+    dlg.AddButton('vSave xm Default', 'Save')
+    dlg['Save'].OnEvent('Click', OnClose)
+    dlg.AddButton('vFile yp', 'Select file')
+    dlg['File'].OnEvent('Click', OnSelectFile)
+    dlg.AddButton('vDir yp', 'Select directory')
+    dlg['Dir'].OnEvent('Click', OnSelectFile)
+    dlg.AddCheckbox('vExpand yp', 'REG_EXPAND_SZ')
+    dlg['Expand'].OnEvent('Click', OnExpandCheck)
     dlg.AddCheckbox('vUnique yp', 'UNIQUE')
-    dlg.OnEvent('Close', OnClose), dlg.OnEvent('Escape', OnClose)
+    dlg.AddCheckbox('vStrict yp Checked', 'STRICT')
+    dlg['Strict'].OnEvent('Click', UpdateSaveButton)
+    dlg.OnEvent('Close', OnClose)
+    dlg.OnEvent('Escape', OnClose)
     if flags & 0x1 ; REG_EXPAND_SZ?
-        dlg['Expanded'].Opt('-Disabled'), dlg['Expand'].Value := true
+    {
+        dlg['Expand'].Value := true
+        dlg['Expanded'].Opt('-Disabled')
+    }
     if flags & 0x2 ; new/edit value?
-        dlg['Name'].Opt('+Disabled'), dlg['Unique'].Value := true
+    {
+        dlg['Unique'].Value := true
+        dlg['Name'].Opt('+Disabled')
+    }
     OnValueChange2()
     UpdateSaveButton()
     UI.GetClientPos(&X, &Y)
     dlg.Show(Format('x{} y{}', X + 10, Y + 10))
 
     WinWaitClose(dlg)
-    UI.Opt('-Disabled')
     WinActivate(UI)
     return result
 
@@ -112,15 +124,25 @@ ShowEditDialog(&result, title, name:='', value:='', flags:=0, id:=0)
         dlg.Opt('+OwnDialogs')
         path := ParseEnvVarValue(dlg['Expanded'].Text)
         path := path.Length ? path[1] : ''
-        options := obj.Name == 'Dir' ? 'D2' : '3'
+        options := obj.Name = 'Dir' ? 'D2' : '3'
         if path := FileSelect(options, path)
-            dlg['Value'].Text := path, OnValueChange2()
+        {
+            dlg['Value'].Text := path
+            OnValueChange2()
+            UpdateSaveButton()
+        }
     }
 
     UpdateSaveButton(*)
     {
-        name := dlg['Name'].Text, value := dlg['Value'].Text
-        dlg['Save'].Opt((name == '' || value == '' ? '+' : '-') . 'Disabled')
+        name := dlg['Name'].Text
+        value := dlg['Value'].Text
+        strict := dlg['Strict'].Value
+        if name = '' || value = ''
+        || (strict && RegExMatch(name, '[^\w()]'))
+            dlg['Save'].Opt('+Disabled')
+        else
+            dlg['Save'].Opt('-Disabled')
     }
 
     OnExpandCheck(cb, *)
@@ -130,7 +152,7 @@ ShowEditDialog(&result, title, name:='', value:='', flags:=0, id:=0)
 
     OnClose(obj, *)
     {
-        if result := obj.Name == 'Save'
+        if result := obj.Name = 'Save'
         {
             if dlg['Unique'].Value
             {
@@ -154,14 +176,14 @@ ShowEditDialog(&result, title, name:='', value:='', flags:=0, id:=0)
             result.name := ControlGetText(dlg['Name'])
             result.value := ControlGetText(dlg['Value'])
         }
-        dlg := dlg.Destroy()
+        UI.Opt('-Disabled'), Sleep(50), dlg := dlg.Destroy()
     }
 }
 
 NormalizeEnvVarValue(value, scope:=0)
 {
     value := ExpandEnvVars(scope, value)
-    if SubStr(value, 2, 1) == ':' ; is path?
+    if SubStr(value, 2, 1) = ':' ; is path?
         value := RegExReplace(value, '[\\/]*$')
     return StrLower(value)
 }
@@ -170,8 +192,8 @@ TV_GetEnvVarValue()
 {
     item := TV.GetSelection()
     items := TV_GetItems(tv, item, 3)
-    if items.Length !== 3
-    || items[1].text == 'Process'
+    if items.Length != 3
+    || items[1].text = 'Process'
         return
     return {
         id: item,
@@ -318,13 +340,13 @@ TV_OnContextMenu(tv, item, rc, x, y)
     tv.Modify(item, 'Select')
 
     ; ENV
-    if !isProcess && items.Length == 1
+    if !isProcess && items.Length = 1
     {
         m.Add('New variable', Menu_NewVar)
     }
 
     ; ENV NAME
-    if !isProcess && items.Length == 2
+    if !isProcess && items.Length = 2
     {
         m.Add('New value', Menu_NewValue)
         m.Add()
@@ -333,7 +355,7 @@ TV_OnContextMenu(tv, item, rc, x, y)
     }
 
     ; ENV NAME VALUE
-    if !isProcess && items.Length == 3
+    if !isProcess && items.Length = 3
     {
         m.Add('Edit value', Menu_EditValue)
         m.Add('Delete value', Menu_DeleteValue)
@@ -421,12 +443,12 @@ ParseEnvVarValue(value, id:=0, scope:=0, options:='')
 
     loop parse value
     {
-        if A_LoopField == '"'
+        if A_LoopField = '"'
         {
             quote := !quote
             continue
         }
-        if !quote && A_LoopField == ';'
+        if !quote && A_LoopField = ';'
             ++index, values.push('')
         else values[index] .= A_LoopField
     }
@@ -464,7 +486,7 @@ GetEnvVarValues(id, arr:=false)
         {
             if InStr(value, ';')
                 value := '"' . value . '"'
-            values .= (values == '' ? '' : ';') . value
+            values .= (values = '' ? '' : ';') . value
         }
         id := TV.GetNext(id)
     }
@@ -519,8 +541,8 @@ ExpandRegEnvVars(key, str)
 {
     str2 := str
     loop reg key
-        if A_LoopRegType == 'REG_SZ'
-        || A_LoopRegType == 'REG_EXPAND_SZ'
+        if A_LoopRegType = 'REG_SZ'
+        || A_LoopRegType = 'REG_EXPAND_SZ'
             str2 := StrReplace(str2, '%' . A_LoopRegName . '%', RegRead())
     return str == str2 ? str : ExpandUserEnvVars(str2)
 }
@@ -540,7 +562,7 @@ GetEnvironmentStrings()
     while (str := StrGet(p, 'UTF-16'))
     {
         var := StrSplit(str, '=')
-        if var.length == 2
+        if var.length = 2
             vars.Set(var[1], var[2])
         p += StrPut(str)
     }
@@ -577,7 +599,7 @@ CreateEnvVar(env, name, value, expand)
             . '`n`n' . name
             ,, 'IconX YN'
         ) = 'Yes'
-            throw Error('')
+            Throw(Error(''))
     }
     catch {
         try {
@@ -623,8 +645,8 @@ ReadEnvVar(env, name, &expand)
     {
         if A_LoopRegName = name
         {
-            expand := A_LoopRegType == 'REG_EXPAND_SZ' ? 0x1 : 0x0
-            return expand || A_LoopRegType == 'REG_SZ' ? RegRead() : ''
+            expand := A_LoopRegType = 'REG_EXPAND_SZ' ? 0x1 : 0x0
+            return expand || A_LoopRegType = 'REG_SZ' ? RegRead() : ''
         }
     }
 }
