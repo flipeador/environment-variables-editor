@@ -4,8 +4,8 @@
 
 <p align="center">
   <img alt="Preview" src="assets/preview.webp"/> <br/> <br/>
-  <a href="https://github.com/flipeador/environment-variables-editor/releases/download/v1.0.3/envvars.exe">
-    <img src="https://img.shields.io/badge/Releases-Direct download (v1.0.3)-orange.svg?style=for-the-badge"/>
+  <a href="https://github.com/flipeador/environment-variables-editor/releases/download/v1.0.4/envvars.exe">
+    <img src="https://img.shields.io/badge/Releases-Direct download (v1.0.4)-orange.svg?style=for-the-badge"/>
   </a>
 </p>
 
