@@ -4,8 +4,8 @@
 
 <p align="center">
   <img alt="Preview" src="assets/preview.webp"/> <br/> <br/>
-  <a href="https://github.com/flipeador/environment-variables-editor/releases/download/v1.0.4/envvars.exe">
-    <img src="https://img.shields.io/badge/Releases-Direct download (v1.0.4)-orange.svg?style=for-the-badge"/>
+  <a href="https://github.com/flipeador/environment-variables-editor/releases/download/v1.0.5/envvars.exe">
+    <img src="https://img.shields.io/badge/Releases-Direct download (v1.0.5)-orange.svg?style=for-the-badge"/>
   </a>
 </p>
 
@@ -13,8 +13,9 @@ Environment variables specify files, directories, application-specific options,
 and other similar information that can be different on different computers.
 The system maintains an environment block for each user and one for the computer.
 
-- **User environment variables** are set for the current user only.
-- **System environment variables** are set for all users on the system.
+- `HKCU\Environment`: Contains persistent environment variables specific to the current user.
+- `HKCU\Volatile Environment`: Contains temporary environment variables specific to the current user.
+- `HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment`: Contains global environment variables for all users.
 
 The name of an environment variable cannot include an equal sign (`=`).
 

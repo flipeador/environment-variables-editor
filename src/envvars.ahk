@@ -1,9 +1,9 @@
-;@Ahk2Exe-SetFileVersion 1.0.4.0
+;@Ahk2Exe-SetFileVersion 1.0.5.0
 ;@Ahk2Exe-SetProductName Environment Variables Editor
 ;@Ahk2Exe-SetDescription Environment variables editor
 ;@Ahk2Exe-SetCopyright https://github.com/flipeador/environment-variables-editor
 
-#Requires AutoHotkey v2.0.19
+#Requires AutoHotkey v2
 #SingleInstance Off
 #NoTrayIcon
 
@@ -13,6 +13,7 @@ if WinExist(TITLE . ' ahk_class AutoHotkeyGUI')
     WinActivate(), ExitApp()
 
 USER_KEY := 'HKCU\Environment'
+USER_V_KEY := 'HKCU\Volatile Environment'
 SYSTEM_KEY := 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
 
 CORE_USER_ENVVARS := [
@@ -97,6 +98,8 @@ ShowEditDialog(title, name:='', value:='', flags:=0, id:=0) {
     if flags & 2 ; new/edit value?
         dlg['Unique'].Value := true
       , dlg['Name'].Opt('+Disabled')
+      , dlg['Strict'].Opt('+Disabled')
+      , dlg['Strict'].Value := false
     OnValueChange2()
     UpdateSaveButton()
     SetBackdropEffect(dlg.Hwnd, 'Acrylic')
@@ -369,16 +372,10 @@ TV_GetItems(tv, item, count) {
 LoadEnvVars(*) {
     tv.Opt('-Redraw')
     tv.Delete()
-
-    user := tv.Add('User')
-    ParseUserEnvVars(user)
-
-    system := tv.Add('System')
-    ParseSystemEnvVars(system)
-
-    process := tv.Add('Process')
-    ParseProcessEnvVars(process)
-
+    ParseEnvVars(USER_KEY, tv.Add('User'))
+    ParseEnvVars(SYSTEM_KEY, tv.Add('System'))
+    ParseEnvVars(USER_V_KEY, tv.Add('User (Volatile)'))
+    ParseProcessEnvVars(tv.Add('Process'))
     tv.Opt('+Redraw')
 }
 
@@ -391,14 +388,6 @@ UpdateEnvVars() {
     }
     WinRedraw(tv)
     SetTimer(Update, -500)
-}
-
-ParseUserEnvVars(id) {
-    ParseEnvVars(USER_KEY, id)
-}
-
-ParseSystemEnvVars(id) {
-    ParseEnvVars(SYSTEM_KEY, id)
 }
 
 ParseEnvVars(key, pid) {
@@ -493,6 +482,7 @@ ExpandEnvVars(scope, str) {
 
 ExpandUserEnvVars(str) {
     str := ExpandRegEnvVars(USER_KEY, str)
+    str := ExpandRegEnvVars(USER_V_KEY, str)
     str := ExpandCoreEnvVars(CORE_USER_ENVVARS, str)
     return ExpandSystemEnvVars(str)
 }
@@ -506,23 +496,23 @@ ExpandSystemEnvVars(str) {
 ExpandRegEnvVars(key, str) {
     str2 := str
     loop reg key
-        if A_LoopRegType = 'REG_SZ'
-        || A_LoopRegType = 'REG_EXPAND_SZ'
-            str2 := StrReplace(str2, '%' . A_LoopRegName . '%', RegRead())
+        if A_LoopRegType = 'REG_SZ' || A_LoopRegType = 'REG_EXPAND_SZ'
+            str2 := StrReplace(str2, Format('%{}%', A_LoopRegName), RegRead())
     return str == str2 ? str : ExpandUserEnvVars(str2)
 }
 
 ExpandCoreEnvVars(arr, str) {
     str2 := str
     for name in arr
-        str2 := StrReplace(str2, '%' . name . '%', EnvGet(name))
+        if data := EnvGet(name)
+            str2 := StrReplace(str2, Format('%{}%', name), data)
     return str == str2 ? str : ExpandCoreEnvVars(arr, str2)
 }
 
 GetEnvironmentStrings() {
     vars := Map()
     ptr := p := DllCall('GetEnvironmentStringsW', 'Ptr')
-    while (str := StrGet(p, 'UTF-16')) {
+    while str := StrGet(p, 'UTF-16') {
         var := StrSplit(str, '=')
         if var.length = 2
             vars.Set(var[1], var[2])
@@ -548,7 +538,7 @@ ShowInfo(ui, message) {
 
 CreateEnvVar(env, name, value, expand) {
     ui.Opt('+OwnDialogs')
-    key := env = 'User' ? USER_KEY : SYSTEM_KEY
+    key := GetRegKey(env)
     type := expand ? 'REG_EXPAND_SZ' : 'REG_SZ'
     try {
         RegRead(key, name) ; throws if not exists
@@ -574,7 +564,7 @@ CreateEnvVar(env, name, value, expand) {
 }
 
 DeleteEnvVar(env, name) {
-    key := env = 'User' ? USER_KEY : SYSTEM_KEY
+    key := GetRegKey(env)
     try RegDelete(key, name)
     catch Error as e {
         ui.Opt('+OwnDialogs')
@@ -585,7 +575,7 @@ DeleteEnvVar(env, name) {
 }
 
 WriteEnvVar(env, name, value, expand) {
-    key := env = 'User' ? USER_KEY : SYSTEM_KEY
+    key := GetRegKey(env)
     type := expand ? 'REG_EXPAND_SZ' : 'REG_SZ'
     try RegWrite(value, type, key, name)
     catch Error as e {
@@ -597,12 +587,16 @@ WriteEnvVar(env, name, value, expand) {
 }
 
 ReadEnvVar(env, name, &expand) {
-    loop reg env = 'User' ? USER_KEY : SYSTEM_KEY {
+    loop reg GetRegKey(env) {
         if A_LoopRegName = name {
             expand := A_LoopRegType = 'REG_EXPAND_SZ' ? 0x1 : 0x0
             return expand || A_LoopRegType = 'REG_SZ' ? RegRead() : ''
         }
     }
+}
+
+GetRegKey(env) {
+    return env = 'User' ? USER_KEY : env = 'System' ? SYSTEM_KEY : USER_V_KEY
 }
 
 SetBackdropEffect(hWnd, type) {
