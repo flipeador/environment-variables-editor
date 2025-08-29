@@ -4,8 +4,8 @@
 
 <p align="center">
   <img alt="Preview" src="assets/preview.webp"/> <br/> <br/>
-  <a href="https://github.com/flipeador/environment-variables-editor/releases/download/v1.0.5/envvars.exe">
-    <img src="https://img.shields.io/badge/Releases-Direct download (v1.0.5)-orange.svg?style=for-the-badge"/>
+  <a href="https://github.com/flipeador/environment-variables-editor/releases/download/v1.0.6/envvars.exe">
+    <img src="https://img.shields.io/badge/Releases-Direct download (v1.0.6)-orange.svg?style=for-the-badge"/>
   </a>
 </p>
 
@@ -37,11 +37,15 @@ Hotkeys that perform an action when the script window is active.
 | [<kbd>XButton1</kbd>][xbutton] | [4th mouse button] Moves the selected environment variable value up. |
 | [<kbd>XButton2</kbd>][xbutton] | [5th mouse button] Moves the selected environment variable value down. |
 
+> [!NOTE]
+> You can use a single `PATH` directory for multiple files by linking them with [exelnk][exelnk].
+
 ## Download
 
 <https://github.com/flipeador/environment-variables-editor/releases>
 
 <!-- Reference Links -->
-[ahk]: https://www.autohotkey.com
-[reload]: https://www.autohotkey.com/docs/v2/lib/Reload.htm
-[xbutton]: https://www.autohotkey.com/docs/v2/KeyList.htm#mouse-advanced
+[ahk]: https://autohotkey.com
+[reload]: https://autohotkey.com/docs/v2/lib/Reload.htm
+[xbutton]: https://autohotkey.com/docs/v2/KeyList.htm#mouse-advanced
+[exelnk]: https://github.com/flipeador/exelnk
