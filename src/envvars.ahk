@@ -1,4 +1,4 @@
-;@Ahk2Exe-SetFileVersion 1.0.5.0
+;@Ahk2Exe-SetFileVersion 1.0.6.0
 ;@Ahk2Exe-SetProductName Environment Variables Editor
 ;@Ahk2Exe-SetDescription Environment variables editor
 ;@Ahk2Exe-SetCopyright https://github.com/flipeador/environment-variables-editor
