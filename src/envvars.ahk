@@ -140,6 +140,7 @@ ShowEditDialog(title, name:='', value:='', flags:=0, id:=0) {
         value := dlg['Value'].Text
         strict := dlg['Strict'].Value
         if name = '' || value = ''
+        || InStr(name, '=')
         || (strict && RegExMatch(name, '[^\w()]'))
             dlg['Save'].Opt('+Disabled')
         else
